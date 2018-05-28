@@ -9,16 +9,25 @@ class PlanarFlow(nn.Module):
         self.D = D
 
     def forward(self, z, lamda):
+        '''
+        z - latents from prev layer
+        lambda - Flow parameters (b, w, u)
+        b - scalar
+        w - vector
+        u - vector
+        '''
         b = lamda[:, :1]
         w, u = lamda[:, 1:].chunk(2, dim=1)
 
         # Forward
+        # f(z) = z + u tanh(w^T z + b)
         transf = F.tanh(
             z.unsqueeze(1).bmm(w.unsqueeze(2))[:, 0] + b
         )
         f_z = z + u * transf
 
         # Inverse
+        # psi_z = tanh' (w^T z + b) w
         psi_z = (1 - transf ** 2) * w
         log_abs_det_jacobian = torch.log(
             (1 + psi_z.unsqueeze(1).bmm(u.unsqueeze(2))).abs()
